@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Тамагочи</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --screen-bg: #8bac0f;
+  --screen-dark: #0f380f;
+  --screen-mid: #306230;
+}
+
+body {
+  background: #1a1a2e;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Courier New', monospace;
+  overflow-x: hidden;
+}
+
+/* ===== SCREENS ===== */
+.screen { width: 100%; min-height: 100vh; display: none; flex-direction: column; align-items: center; }
+.screen.active { display: flex; }
+
+/* ===== SELECTION ===== */
+#sel-screen { background: #1a1a2e; padding: 18px 16px 28px; }
+
+.sel-title {
+  font-size: 24px; color: #f0c040; text-align: center;
+  letter-spacing: 4px; font-weight: bold; text-transform: uppercase;
+  text-shadow: 0 0 16px #f0c04080; margin-bottom: 2px;
+}
+.sel-sub { font-size: 9px; color: #555; text-align: center; letter-spacing: 2px; margin-bottom: 20px; text-transform: uppercase; }
+
+.model-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 340px; margin-bottom: 18px; }
+
+.model-card {
+  background: #16213e; border: 2px solid #2a2d5a; border-radius: 16px;
+  padding: 14px 8px 12px; display: flex; flex-direction: column;
+  align-items: center; cursor: pointer; position: relative;
+  transition: transform 0.1s, border-color 0.15s;
+}
+.model-card:active { transform: scale(0.95); }
+.model-card.selected { border-color: #f0c040; box-shadow: 0 0 14px #f0c04050; }
+
+.model-shell { width: 80px; height: 88px; margin-bottom: 8px; }
+.model-name { font-size: 11px; color: #ddd; letter-spacing: 1px; font-weight: bold; text-transform: uppercase; }
+.model-desc { font-size: 8px; color: #666; text-align: center; margin-top: 3px; line-height: 1.4; }
+.model-badge {
+  position: absolute; top: -8px; right: -8px;
+  background: #f0c040; color: #1a1a2e; font-size: 8px; font-weight: bold;
+  padding: 2px 6px; border-radius: 8px; letter-spacing: 0.5px; text-transform: uppercase;
+}
+
+.sel-footer { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; max-width: 340px; }
+
+.start-btn {
+  background: #f0c040; color: #1a1a2e; border: none;
+  padding: 14px 0; width: 100%; font-size: 14px;
+  font-family: 'Courier New', monospace; font-weight: bold;
+  letter-spacing: 2px; border-radius: 28px; cursor: pointer;
+  text-transform: uppercase; transition: transform 0.1s;
+}
+.start-btn:active { transform: scale(0.97); }
+.start-btn:disabled { opacity: 0.35; }
+
+.support-link-btn {
+  background: transparent; color: #555; border: 1px solid #2a2d5a;
+  padding: 10px 0; width: 100%; font-size: 10px;
+  font-family: 'Courier New', monospace; letter-spacing: 1px;
+  border-radius: 20px; cursor: pointer; text-transform: uppercase;
+  transition: color 0.15s, border-color 0.15s;
+}
+.support-link-btn:hover { color: #f0c040; border-color: #f0c04060; }
+
+/* ===== GAME SCREEN ===== */
+#game-screen { background: #1a1a2e; padding: 8px 16px 28px; }
+
+.game-header {
+  display: flex; justify-content: space-between; align-items: center;
+  width: 100%; max-width: 300px; margin-bottom: 8px;
+}
+.game-clock { font-size: 11px; color: #f0c040; letter-spacing: 1px; }
+.game-age { font-size: 9px; color: #666; letter-spacing: 1px; text-transform: uppercase; }
+.support-mini-btn {
+  font-size: 10px; color: #555; background: none; border: none;
+  cursor: pointer; letter-spacing: 0.5px; padding: 4px 8px;
+}
+
+/* DEVICE */
+.tama-device { position: relative; width: 260px; margin: 0 auto 14px; user-select: none; }
+
+.tama-chain-wrap {
+  display: flex; justify-content: center; margin-bottom: 2px;
+}
+.tama-chain-svg { display: block; }
+
+.tama-shell {
+  width: 260px; border-radius: 50% 50% 42% 42% / 28% 28% 42% 42%;
+  padding: 20px 18px 28px; position: relative;
+  transition: background 0.3s;
+}
+.tama-shell.shell-dog   { background: #c83030; box-shadow: 0 4px 0 #901010, 0 8px 24px #00000070; }
+.tama-shell.shell-cat   { background: #3060c8; box-shadow: 0 4px 0 #1038a0, 0 8px 24px #00000070; }
+.tama-shell.shell-alien { background: #28a040; box-shadow: 0 4px 0 #106020, 0 8px 24px #00000070; }
+.tama-shell.shell-dragon{ background: #7030c0; box-shadow: 0 4px 0 #4010a0, 0 8px 24px #00000070; }
+
+.tama-screen-outer {
+  background: #222; border-radius: 12px; padding: 6px;
+  box-shadow: inset 0 3px 10px #000b, 0 1px 0 #ffffff30;
+}
+.tama-screen {
+  width: 216px; height: 168px; background: #8bac0f;
+  border-radius: 7px; overflow: hidden; position: relative;
+}
+canvas#pet-canvas {
+  width: 216px; height: 168px; display: block;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+}
+
+/* HW BUTTONS */
+.tama-btns { display: flex; justify-content: space-around; align-items: center; margin-top: 16px; padding: 0 8px; }
+.tama-btn-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.tama-btn {
+  width: 38px; height: 38px; border: none; border-radius: 50%;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: transform 0.07s;
+}
+.tama-btn:active { transform: translateY(2px); }
+.tama-btn span { font-size: 9px; color: white; font-weight: bold; pointer-events: none; }
+.btn-a { background: #2848c8; box-shadow: 0 3px 0 #0820a0, 0 4px 10px #00000050; }
+.btn-a:active { box-shadow: 0 1px 0 #0820a0; }
+.btn-b { background: #d82030; box-shadow: 0 3px 0 #880010, 0 4px 10px #00000050; }
+.btn-b:active { box-shadow: 0 1px 0 #880010; }
+.btn-c { background: #18a838; box-shadow: 0 3px 0 #086018, 0 4px 10px #00000050; }
+.btn-c:active { box-shadow: 0 1px 0 #086018; }
+.btn-label { font-size: 7px; color: rgba(255,255,255,0.35); letter-spacing: 0.5px; text-transform: uppercase; }
+
+/* STATS */
+.stats-panel {
+  width: 100%; max-width: 300px; background: #16213e;
+  border: 1px solid #2a2d5a; border-radius: 12px;
+  padding: 10px 14px; margin-bottom: 10px;
+}
+.stats-row { display: flex; align-items: center; margin-bottom: 5px; gap: 6px; }
+.stats-row:last-child { margin-bottom: 0; }
+.stat-icon { font-size: 13px; width: 18px; flex-shrink: 0; }
+.stat-label { font-size: 8px; color: #666; width: 52px; text-transform: uppercase; letter-spacing: 0.4px; flex-shrink: 0; }
+.stat-bar { flex: 1; height: 7px; background: #0d2010; border-radius: 2px; overflow: hidden; }
+.stat-fill { height: 100%; border-radius: 2px; transition: width 0.5s, background 0.5s; }
+.fill-hunger { background: #e06820; }
+.fill-happy  { background: #d8b810; }
+.fill-health { background: #18b838; }
+.fill-clean  { background: #18a0d8; }
+.stat-val { font-size: 8px; color: #444; width: 22px; text-align: right; flex-shrink: 0; }
+
+/* ACTIONS */
+.actions-panel { width: 100%; max-width: 300px; }
+.actions-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.action-btn {
+  background: #16213e; border: 1px solid #2a2d5a; border-radius: 10px;
+  padding: 9px 4px 7px; cursor: pointer; display: flex; flex-direction: column;
+  align-items: center; gap: 3px; transition: transform 0.07s, border-color 0.1s, background 0.1s;
+}
+.action-btn:active { transform: scale(0.93); }
+.action-btn.highlight { border-color: #f0c040; background: #f0c04018; }
+.action-btn.alert-btn { border-color: #e8304070; animation: pulse-alert 1.2s infinite; }
+@keyframes pulse-alert {
+  0%,100% { border-color: #e8304070; }
+  50%      { border-color: #e83040cc; box-shadow: 0 0 8px #e8304060; }
+}
+.action-icon { font-size: 19px; }
+.action-name { font-size: 7px; color: #888; text-transform: uppercase; letter-spacing: 0.4px; text-align: center; }
+
+/* NOTIFY BANNER */
+#notify-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  padding: 11px 16px; text-align: center; font-size: 11px;
+  font-family: 'Courier New', monospace; letter-spacing: 1px; text-transform: uppercase;
+  transform: translateY(-100%); transition: transform 0.28s;
+  color: white;
+}
+#notify-banner.show { transform: translateY(0); }
+#notify-banner.good { background: #18a838; }
+#notify-banner.warn { background: #d07010; }
+#notify-banner.bad  { background: #d82030; }
+
+/* GAME OVER */
+#gameover-screen { background: #10101e; justify-content: center; }
+.go-box {
+  background: #16213e; border: 2px solid #f0c040;
+  border-radius: 18px; padding: 32px 24px; text-align: center; max-width: 290px; width: 90%;
+}
+.go-emoji { font-size: 48px; margin-bottom: 12px; }
+.go-title { font-size: 18px; color: #f0c040; font-weight: bold; letter-spacing: 3px; margin-bottom: 8px; text-transform: uppercase; }
+.go-msg { font-size: 11px; color: #999; line-height: 1.5; margin-bottom: 6px; }
+.go-stats { font-size: 10px; color: #555; margin-bottom: 24px; line-height: 1.6; }
+.go-btns { display: flex; flex-direction: column; gap: 8px; }
+.go-restart {
+  background: #f0c040; color: #1a1a2e; border: none; padding: 13px;
+  font-size: 13px; font-family: 'Courier New', monospace; font-weight: bold;
+  letter-spacing: 2px; border-radius: 20px; cursor: pointer; text-transform: uppercase;
+}
+.go-support {
+  background: transparent; color: #555; border: 1px solid #2a2d5a;
+  padding: 11px; font-size: 10px; font-family: 'Courier New', monospace;
+  letter-spacing: 1px; border-radius: 20px; cursor: pointer; text-transform: uppercase;
+}
+
+/* MINI GAME */
+#minigame-overlay {
+  display: none; position: fixed; inset: 0; background: #000000cc;
+  z-index: 150; align-items: center; justify-content: center; flex-direction: column;
+}
+.mg-box {
+  background: #16213e; border: 2px solid #2848c8;
+  border-radius: 16px; padding: 18px; text-align: center; width: 286px;
+}
+.mg-title { font-size: 12px; color: #7090f0; letter-spacing: 2px; margin-bottom: 10px; text-transform: uppercase; }
+#mg-canvas { display: block; margin: 0 auto 10px; image-rendering: pixelated; border: 1.5px solid #2a2d5a; border-radius: 6px; }
+.mg-btns { display: flex; gap: 8px; justify-content: center; }
+.mg-btn {
+  background: #2848c8; color: white; border: none; padding: 10px 18px;
+  font-size: 12px; font-family: 'Courier New', monospace; font-weight: bold;
+  border-radius: 10px; cursor: pointer; letter-spacing: 1px;
+}
+.mg-result { font-size: 11px; color: #aaa; margin-top: 8px; min-height: 18px; }
+
+/* ===== SUPPORT SCREEN ===== */
+#support-screen { background: #1a1a2e; padding: 20px 16px 40px; }
+
+.sup-back {
+  align-self: flex-start; background: none; border: none;
+  color: #555; font-family: 'Courier New', monospace; font-size: 11px;
+  cursor: pointer; letter-spacing: 1px; margin-bottom: 20px; padding: 4px 0;
+}
+.sup-back:hover { color: #f0c040; }
+
+.sup-pixel-art { margin: 0 auto 20px; }
+
+.sup-title {
+  font-size: 18px; color: #f0c040; text-align: center;
+  letter-spacing: 3px; font-weight: bold; text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.sup-tagline { font-size: 10px; color: #555; text-align: center; letter-spacing: 1.5px; margin-bottom: 28px; line-height: 1.6; }
+
+.sup-section { width: 100%; max-width: 320px; margin-bottom: 20px; }
+.sup-section-title {
+  font-size: 8px; color: #444; letter-spacing: 2px; text-transform: uppercase;
+  margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #1e2248;
+}
+
+.donate-card {
+  background: #16213e; border: 1px solid #2a2d5a; border-radius: 14px;
+  padding: 14px 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 14px;
+  cursor: pointer; transition: border-color 0.15s, transform 0.1s;
+  text-decoration: none;
+}
+.donate-card:active { transform: scale(0.97); }
+.donate-card:hover { border-color: #f0c04060; }
+.donate-card.primary { border-color: #f0c04050; background: #1e1f10; }
+
+.donate-icon { font-size: 24px; flex-shrink: 0; width: 36px; text-align: center; }
+.donate-info { flex: 1; min-width: 0; }
+.donate-name { font-size: 12px; color: #e0e0e0; font-weight: bold; letter-spacing: 0.5px; }
+.donate-desc { font-size: 9px; color: #555; margin-top: 2px; letter-spacing: 0.3px; }
+.donate-value { font-size: 10px; color: #f0c040; margin-top: 3px; letter-spacing: 0.5px; word-break: break-all; }
+.donate-arrow { font-size: 14px; color: #333; flex-shrink: 0; }
+
+.copy-btn {
+  background: #0d1530; border: 1px solid #2a2d5a; border-radius: 8px;
+  padding: 6px 12px; font-size: 9px; color: #555; cursor: pointer;
+  font-family: 'Courier New', monospace; letter-spacing: 0.5px; margin-top: 4px;
+  transition: color 0.15s; display: inline-block;
+}
+.copy-btn:hover { color: #f0c040; }
+.copy-btn.copied { color: #18a838; border-color: #18a83840; }
+
+.sup-message {
+  background: #12182e; border-left: 3px solid #f0c04060;
+  border-radius: 0 8px 8px 0; padding: 14px 16px; margin-bottom: 20px;
+  max-width: 320px; width: 100%;
+}
+.sup-message p { font-size: 10px; color: #777; line-height: 1.7; letter-spacing: 0.3px; }
+.sup-message p + p { margin-top: 8px; }
+
+.sup-thanks {
+  font-size: 9px; color: #333; text-align: center; letter-spacing: 1px;
+  text-transform: uppercase; margin-top: 8px;
+}
+</style>
+</head>
+<body>
+
+<div id="notify-banner"></div>
+
+<!-- ==================== SELECTION ==================== -->
+<div id="sel-screen" class="screen active">
+  <div class="sel-title">Тамагочи</div>
+  <div class="sel-sub">выбери своего питомца</div>
+
+  <div class="model-grid">
+    <div class="model-card" data-pet="dog" onclick="selectPet('dog',this)">
+      <div class="model-shell">
+        <svg width="80" height="88" viewBox="0 0 80 88">
+          <ellipse cx="40" cy="52" rx="36" ry="31" fill="#c83030"/>
+          <ellipse cx="40" cy="52" rx="30" ry="26" fill="#e06060"/>
+          <rect x="16" y="28" width="48" height="37" rx="5" fill="#1a1a1a"/>
+          <rect x="19" y="31" width="42" height="31" rx="3" fill="#8bac0f"/>
+          <rect x="28" y="35" width="5" height="5" fill="#0f380f"/><rect x="47" y="35" width="5" height="5" fill="#0f380f"/>
+          <rect x="30" y="38" width="3" height="3" fill="#8bac0f"/><rect x="49" y="38" width="3" height="3" fill="#8bac0f"/>
+          <rect x="35" y="42" width="10" height="2" fill="#0f380f"/>
+          <rect x="35" y="45" width="4" height="3" fill="#0f380f"/><rect x="41" y="45" width="4" height="3" fill="#0f380f"/>
+          <rect x="27" y="49" width="4" height="7" fill="#0f380f"/><rect x="49" y="49" width="4" height="7" fill="#0f380f"/>
+          <circle cx="22" cy="72" r="6" fill="#2848c8"/><circle cx="40" cy="74" r="6" fill="#d82030"/><circle cx="58" cy="72" r="6" fill="#18a838"/>
+          <ellipse cx="40" cy="16" rx="6" ry="3" fill="none" stroke="#901010" stroke-width="2.5"/>
+          <line x1="40" y1="19" x2="40" y2="28" stroke="#901010" stroke-width="2"/>
+        </svg>
+      </div>
+      <div class="model-name">Собака</div>
+      <div class="model-desc">Гуляй вовремя —<br>иначе лужа дома!</div>
+    </div>
+
+    <div class="model-card" data-pet="cat" onclick="selectPet('cat',this)">
+      <div class="model-badge">ХИТ</div>
+      <div class="model-shell">
+        <svg width="80" height="88" viewBox="0 0 80 88">
+          <ellipse cx="40" cy="52" rx="36" ry="31" fill="#3060c8"/>
+          <ellipse cx="40" cy="52" rx="30" ry="26" fill="#6090e0"/>
+          <rect x="16" y="28" width="48" height="37" rx="5" fill="#1a1a1a"/>
+          <rect x="19" y="31" width="42" height="31" rx="3" fill="#8bac0f"/>
+          <rect x="25" y="32" width="5" height="7" fill="#0f380f"/><rect x="50" y="32" width="5" height="7" fill="#0f380f"/>
+          <rect x="26" y="33" width="3" height="4" fill="#306230"/>
+          <rect x="51" y="33" width="3" height="4" fill="#306230"/>
+          <rect x="28" y="37" width="5" height="4" fill="#0f380f"/><rect x="47" y="37" width="5" height="4" fill="#0f380f"/>
+          <rect x="30" y="38" width="1" height="4" fill="#8bac0f"/><rect x="49" y="38" width="1" height="4" fill="#8bac0f"/>
+          <rect x="37" y="42" width="6" height="2" fill="#0f380f"/>
+          <rect x="22" y="42" width="12" height="1" fill="#0f380f"/><rect x="46" y="42" width="12" height="1" fill="#0f380f"/>
+          <rect x="34" y="46" width="12" height="2" fill="#0f380f"/>
+          <rect x="28" y="50" width="4" height="6" fill="#0f380f"/><rect x="48" y="50" width="4" height="6" fill="#0f380f"/>
+          <circle cx="22" cy="72" r="6" fill="#2848c8"/><circle cx="40" cy="74" r="6" fill="#d82030"/><circle cx="58" cy="72" r="6" fill="#18a838"/>
+          <ellipse cx="40" cy="16" rx="6" ry="3" fill="none" stroke="#1038a0" stroke-width="2.5"/>
+          <line x1="40" y1="19" x2="40" y2="28" stroke="#1038a0" stroke-width="2"/>
+        </svg>
+      </div>
+      <div class="model-name">Кот</div>
+      <div class="model-desc">Лоток нужен,<br>любит тишину</div>
+    </div>
+
+    <div class="model-card" data-pet="alien" onclick="selectPet('alien',this)">
+      <div class="model-shell">
+        <svg width="80" height="88" viewBox="0 0 80 88">
+          <ellipse cx="40" cy="52" rx="36" ry="31" fill="#28a040"/>
+          <ellipse cx="40" cy="52" rx="30" ry="26" fill="#50c060"/>
+          <rect x="16" y="28" width="48" height="37" rx="5" fill="#1a1a1a"/>
+          <rect x="19" y="31" width="42" height="31" rx="3" fill="#8bac0f"/>
+          <ellipse cx="32" cy="41" rx="7" ry="8" fill="#0f380f"/>
+          <ellipse cx="48" cy="41" rx="7" ry="8" fill="#0f380f"/>
+          <ellipse cx="31" cy="40" rx="2.5" ry="3" fill="#8bac0f"/><ellipse cx="47" cy="40" rx="2.5" ry="3" fill="#8bac0f"/>
+          <line x1="40" y1="34" x2="40" y2="29" stroke="#0f380f" stroke-width="2"/>
+          <circle cx="40" cy="28" r="3" fill="#0f380f"/>
+          <path d="M31 52 Q40 58 49 52" fill="none" stroke="#0f380f" stroke-width="2"/>
+          <rect x="29" y="56" width="4" height="6" fill="#0f380f"/><rect x="47" y="56" width="4" height="6" fill="#0f380f"/>
+          <circle cx="22" cy="72" r="6" fill="#2848c8"/><circle cx="40" cy="74" r="6" fill="#d82030"/><circle cx="58" cy="72" r="6" fill="#18a838"/>
+          <ellipse cx="40" cy="16" rx="6" ry="3" fill="none" stroke="#106020" stroke-width="2.5"/>
+          <line x1="40" y1="19" x2="40" y2="28" stroke="#106020" stroke-width="2"/>
+        </svg>
+      </div>
+      <div class="model-name">Пришелец</div>
+      <div class="model-desc">Классика 90-х,<br>таинственный</div>
+    </div>
+
+    <div class="model-card" data-pet="dragon" onclick="selectPet('dragon',this)">
+      <div class="model-shell">
+        <svg width="80" height="88" viewBox="0 0 80 88">
+          <ellipse cx="40" cy="52" rx="36" ry="31" fill="#7030c0"/>
+          <ellipse cx="40" cy="52" rx="30" ry="26" fill="#a060e0"/>
+          <rect x="16" y="28" width="48" height="37" rx="5" fill="#1a1a1a"/>
+          <rect x="19" y="31" width="42" height="31" rx="3" fill="#8bac0f"/>
+          <polygon points="27,37 23,28 33,33" fill="#0f380f"/>
+          <polygon points="53,37 57,28 47,33" fill="#0f380f"/>
+          <rect x="26" y="36" width="8" height="6" fill="#0f380f"/><rect x="46" y="36" width="8" height="6" fill="#0f380f"/>
+          <rect x="28" y="37" width="4" height="4" fill="#e82030"/><rect x="48" y="37" width="4" height="4" fill="#e82030"/>
+          <rect x="35" y="44" width="10" height="6" fill="#0f380f"/>
+          <rect x="37" y="48" width="4" height="5" fill="#e85820"/><rect x="38" y="50" width="2" height="3" fill="#e8c820"/>
+          <rect x="18" y="41" width="7" height="11" rx="2" fill="#0f380f"/>
+          <rect x="55" y="41" width="7" height="11" rx="2" fill="#0f380f"/>
+          <circle cx="22" cy="72" r="6" fill="#2848c8"/><circle cx="40" cy="74" r="6" fill="#d82030"/><circle cx="58" cy="72" r="6" fill="#18a838"/>
+          <ellipse cx="40" cy="16" rx="6" ry="3" fill="none" stroke="#4010a0" stroke-width="2.5"/>
+          <line x1="40" y1="19" x2="40" y2="28" stroke="#4010a0" stroke-width="2"/>
+        </svg>
+      </div>
+      <div class="model-name">Дракон</div>
+      <div class="model-desc">Редкий питомец,<br>огнедышащий</div>
+    </div>
+  </div>
+
+  <div class="sel-footer">
+    <button class="start-btn" id="start-btn" onclick="startGame()" disabled>▶ НАЧАТЬ ИГРУ</button>
+    <button class="support-link-btn" onclick="showScreen('support-screen')">❤ Поддержать автора</button>
+  </div>
+</div>
+
+<!-- ==================== GAME ==================== -->
+<div id="game-screen" class="screen">
+  <div class="game-header">
+    <div>
+      <div class="game-clock" id="game-clock">🌅 08:00</div>
+      <div class="game-age" id="game-age">День 1 · Малыш</div>
+    </div>
+    <button class="support-mini-btn" onclick="showScreen('support-screen')">❤</button>
+  </div>
+
+  <div class="tama-device">
+    <div class="tama-chain-wrap">
+      <svg class="tama-chain-svg" width="20" height="22" viewBox="0 0 20 22">
+        <ellipse cx="10" cy="5" rx="7" ry="4" fill="none" stroke="#666" stroke-width="2.5"/>
+        <line x1="10" y1="9" x2="10" y2="22" stroke="#666" stroke-width="2"/>
+      </svg>
+    </div>
+    <div class="tama-shell shell-dog" id="tama-shell">
+      <div class="tama-screen-outer">
+        <div class="tama-screen">
+          <canvas id="pet-canvas" width="108" height="84"></canvas>
+        </div>
+      </div>
+      <div class="tama-btns">
+        <div class="tama-btn-wrap">
+          <button class="tama-btn btn-a" onclick="navLeft()"><span>A</span></button>
+          <div class="btn-label">◀ пред</div>
+        </div>
+        <div class="tama-btn-wrap">
+          <button class="tama-btn btn-b" onclick="navSelect()"><span>B</span></button>
+          <div class="btn-label">● выбор</div>
+        </div>
+        <div class="tama-btn-wrap">
+          <button class="tama-btn btn-c" onclick="navRight()"><span>C</span></button>
+          <div class="btn-label">след ▶</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-panel">
+    <div class="stats-row">
+      <div class="stat-icon">🍖</div><div class="stat-label">Голод</div>
+      <div class="stat-bar"><div class="stat-fill fill-hunger" id="bar-hunger" style="width:100%"></div></div>
+      <div class="stat-val" id="val-hunger">100</div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-icon">😊</div><div class="stat-label">Счастье</div>
+      <div class="stat-bar"><div class="stat-fill fill-happy" id="bar-happy" style="width:100%"></div></div>
+      <div class="stat-val" id="val-happy">100</div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-icon">❤️</div><div class="stat-label">Здоровье</div>
+      <div class="stat-bar"><div class="stat-fill fill-health" id="bar-health" style="width:100%"></div></div>
+      <div class="stat-val" id="val-health">100</div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-icon">🚿</div><div class="stat-label">Чистота</div>
+      <div class="stat-bar"><div class="stat-fill fill-clean" id="bar-clean" style="width:100%"></div></div>
+      <div class="stat-val" id="val-clean">100</div>
+    </div>
+  </div>
+
+  <div class="actions-panel">
+    <div class="actions-grid">
+      <button class="action-btn" id="btn-feed"       onclick="doAction('feed')">
+        <span class="action-icon">🍖</span><span class="action-name">Кормить</span>
+      </button>
+      <button class="action-btn" id="btn-snack"      onclick="doAction('snack')">
+        <span class="action-icon">🍬</span><span class="action-name">Лакомство</span>
+      </button>
+      <button class="action-btn" id="btn-play"       onclick="doAction('play')">
+        <span class="action-icon">🎮</span><span class="action-name">Игра</span>
+      </button>
+      <button class="action-btn" id="btn-shower"     onclick="doAction('shower')">
+        <span class="action-icon">🚿</span><span class="action-name">Помыть</span>
+      </button>
+      <button class="action-btn" id="btn-toilet"     onclick="doAction('toilet')">
+        <span class="action-icon" id="toilet-icon">🚽</span>
+        <span class="action-name" id="toilet-label">Лоток</span>
+      </button>
+      <button class="action-btn" id="btn-medicine"   onclick="doAction('medicine')">
+        <span class="action-icon">💊</span><span class="action-name">Лечить</span>
+      </button>
+      <button class="action-btn" id="btn-walk"       onclick="doAction('walk')" style="display:none">
+        <span class="action-icon">🦮</span><span class="action-name">Прогулка</span>
+      </button>
+      <button class="action-btn" id="btn-lights"     onclick="doAction('lights')">
+        <span class="action-icon" id="lights-icon">💡</span>
+        <span class="action-name" id="lights-label">Свет выкл</span>
+      </button>
+      <button class="action-btn" id="btn-discipline" onclick="doAction('discipline')">
+        <span class="action-icon">😤</span><span class="action-name">Дисципл.</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== GAME OVER ==================== -->
+<div id="gameover-screen" class="screen" style="justify-content:center;">
+  <div class="go-box">
+    <div class="go-emoji" id="go-emoji">💀</div>
+    <div class="go-title" id="go-title">Питомец умер</div>
+    <div class="go-msg" id="go-msg">Ты не уследил...</div>
+    <div class="go-stats" id="go-stats"></div>
+    <div class="go-btns">
+      <button class="go-restart" onclick="restartGame()">▶ Начать заново</button>
+      <button class="go-support" onclick="showScreen('support-screen')">❤ Поддержать автора</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SUPPORT ==================== -->
+<div id="support-screen" class="screen" style="padding:20px 16px 40px;">
+  <button class="sup-back" id="sup-back-btn" onclick="goBackFromSupport()">← Назад</button>
+
+  <!-- pixel art heart / trophy -->
+  <svg class="sup-pixel-art" width="64" height="64" viewBox="0 0 64 64">
+    <rect x="0" y="0" width="64" height="64" rx="14" fill="#16213e"/>
+    <!-- pixel heart -->
+    <rect x="10" y="20" width="8" height="8" fill="#f0c040"/>
+    <rect x="18" y="14" width="8" height="14" fill="#f0c040"/>
+    <rect x="26" y="12" width="8" height="16" fill="#f0c040"/>
+    <rect x="34" y="12" width="8" height="16" fill="#f0c040"/>
+    <rect x="42" y="14" width="8" height="14" fill="#f0c040"/>
+    <rect x="50" y="20" width="8" height="8" fill="#f0c040"/>
+    <rect x="8"  y="28" width="10" height="8" fill="#f0c040"/>
+    <rect x="48" y="28" width="8"  height="8" fill="#f0c040"/>
+    <rect x="12" y="36" width="8"  height="8" fill="#f0c040"/>
+    <rect x="44" y="36" width="8"  height="8" fill="#f0c040"/>
+    <rect x="16" y="44" width="8"  height="6" fill="#f0c040"/>
+    <rect x="40" y="44" width="8"  height="6" fill="#f0c040"/>
+    <rect x="22" y="50" width="8"  height="6" fill="#f0c040"/>
+    <rect x="34" y="50" width="6"  height="6" fill="#f0c040"/>
+    <rect x="28" y="54" width="8"  height="4" fill="#f0c040"/>
+  </svg>
+
+  <div class="sup-title">Поддержи автора</div>
+  <div class="sup-tagline">Это приложение создано с любовью<br>и большим количеством кофе ☕<br>Твоя поддержка помогает делать новые проекты</div>
+
+  <div class="sup-message">
+    <p>Привет! Я делаю этот проект в свободное время, чтобы принести немного ностальгии и радости. Если тебе понравилось — любая поддержка очень ценна и мотивирует продолжать.</p>
+    <p>Ты можешь перевести любую сумму — даже совсем небольшую. Это реально важно 🙏</p>
+  </div>
+
+  <!-- DONATE CARDS — вставь свои ссылки и реквизиты -->
+  <div class="sup-section">
+    <div class="sup-section-title">💳 Способы поддержки</div>
+
+    <!-- Карта (замени номер) -->
+    <div class="donate-card primary" onclick="copyText('0000 0000 0000 0000', this)">
+      <div class="donate-icon">💳</div>
+      <div class="donate-info">
+        <div class="donate-name">Банковская карта</div>
+        <div class="donate-desc">Сбербанк / Тинькофф</div>
+        <div class="donate-value">0000 0000 0000 0000</div>
+      </div>
+      <div class="donate-arrow">⬡</div>
+    </div>
+
+    <!-- TON (замени адрес) -->
+    <div class="donate-card" onclick="copyText('UQA...ВАШ_TON_АДРЕС', this)">
+      <div class="donate-icon">💎</div>
+      <div class="donate-info">
+        <div class="donate-name">TON / USDT (TRC-20)</div>
+        <div class="donate-desc">Криптовалюта</div>
+        <div class="donate-value" id="ton-addr">UQA...ВАШ_АДРЕС</div>
+      </div>
+      <div class="donate-arrow">⬡</div>
+    </div>
+
+    <!-- BTC (замени адрес) -->
+    <div class="donate-card" onclick="copyText('bc1q...ВАШ_BTC_АДРЕС', this)">
+      <div class="donate-icon">₿</div>
+      <div class="donate-info">
+        <div class="donate-name">Bitcoin (BTC)</div>
+        <div class="donate-desc">Криптовалюта</div>
+        <div class="donate-value">bc1q...ВАШ_АДРЕС</div>
+      </div>
+      <div class="donate-arrow">⬡</div>
+    </div>
+
+    <!-- ЮMoney -->
+    <a class="donate-card" href="https://yoomoney.ru/to/ВАШИ_РЕКВИЗИТЫ" target="_blank">
+      <div class="donate-icon">💛</div>
+      <div class="donate-info">
+        <div class="donate-name">ЮMoney</div>
+        <div class="donate-desc">Быстрый перевод</div>
+        <div class="donate-value">yoomoney.ru/to/...</div>
+      </div>
+      <div class="donate-arrow">→</div>
+    </a>
+
+    <!-- Boosty -->
+    <a class="donate-card" href="https://boosty.to/ВАШ_ПРОФИЛЬ" target="_blank">
+      <div class="donate-icon">🚀</div>
+      <div class="donate-info">
+        <div class="donate-name">Boosty</div>
+        <div class="donate-desc">Подписка и донаты</div>
+        <div class="donate-value">boosty.to/...</div>
+      </div>
+      <div class="donate-arrow">→</div>
+    </a>
+
+    <!-- Telegram Stars -->
+    <a class="donate-card" href="https://t.me/ВАШ_БОТ" target="_blank">
+      <div class="donate-icon">⭐</div>
+      <div class="donate-info">
+        <div class="donate-name">Telegram Stars</div>
+        <div class="donate-desc">Звёзды прямо в Telegram</div>
+        <div class="donate-value">@ВАШ_БОТ</div>
+      </div>
+      <div class="donate-arrow">→</div>
+    </a>
+  </div>
+
+  <div class="sup-section">
+    <div class="sup-section-title">🔗 Контакты и соцсети</div>
+
+    <a class="donate-card" href="https://t.me/ВАШ_КАНАЛ" target="_blank">
+      <div class="donate-icon">✈️</div>
+      <div class="donate-info">
+        <div class="donate-name">Telegram канал</div>
+        <div class="donate-desc">Новости проектов</div>
+        <div class="donate-value">@ВАШ_КАНАЛ</div>
+      </div>
+      <div class="donate-arrow">→</div>
+    </a>
+
+    <a class="donate-card" href="https://github.com/ВАШ_ПРОФИЛЬ" target="_blank">
+      <div class="donate-icon">🐙</div>
+      <div class="donate-info">
+        <div class="donate-name">GitHub</div>
+        <div class="donate-desc">Исходный код</div>
+        <div class="donate-value">github.com/...</div>
+      </div>
+      <div class="donate-arrow">→</div>
+    </a>
+  </div>
+
+  <div class="sup-thanks">Спасибо, что играешь ❤</div>
+</div>
+
+<!-- MINI GAME -->
+<div id="minigame-overlay">
+  <div class="mg-box">
+    <div class="mg-title">Угадай куда прыгнет!</div>
+    <canvas id="mg-canvas" width="200" height="100"></canvas>
+    <div class="mg-btns">
+      <button class="mg-btn" onclick="mgGuess('left')">◀ Влево</button>
+      <button class="mg-btn" onclick="mgGuess('right')">Вправо ▶</button>
+    </div>
+    <div class="mg-result" id="mg-result"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  CONSTANTS
+// ============================================================
+// 1 real second = 1.4 игровых минуты
+// 1 игровые сутки = 24*60/1.4 ≈ 1028 секунд ≈ ~17 реальных минут
+// Тик игры — каждые 5 реальных секунд = 7 игровых минут
+const TICK_MS       = 5000;   // тик раз в 5 секунд
+// 280 реальных минут = 1 сутки = 1440 игровых минут
+// 1 тик (5 сек) = 5/60 реальных мин × (1440/280) ≈ 0.43 игровых минуты
+const MINS_PER_TICK = 0.43;   // игровых минут за тик
+const DAY_MINS      = 1440;   // минут в сутках
+const WAKE_HOUR     = 8;      // питомец просыпается в 8:00
+const SLEEP_HOUR    = 22;     // укладывается в 22:00
+
+// Деградация характеристик (единиц за тик, рандом ±50%)
+const BASE_DECAY = {
+  hunger: 0.08,   // кончится за ~6 реал.часов
+  happy:  0.055,
+  clean:  0.032,
+};
+// Ухудшение здоровья при критических статах
+const HEALTH_DAMAGE_PER_TICK = 0.6;
+
+// Пороги предупреждений
+const WARN_THRESHOLD = 25;
+const CRIT_THRESHOLD = 10;
+
+// Пороги для событий (в игровых минутах)
+const POOP_INTERVAL_MIN = 925; // ~3 реал.часа  // какает раз в 3 часа (±рандом)
+const WALK_INTERVAL_MIN = 1234; // ~4 реал.часа  // собаке нужна прогулка каждые 4 часа
+const DISCIPLINE_CHANCE = 0.0003; // шанс каприза за тик (только при сытом/счастливом)
+
+const PETS = {
+  dog:    { name:'Пёс',      shellClass:'shell-dog',    hasWalk:true,  toiletIcon:'🦮', toiletLabel:'Прогулка' },
+  cat:    { name:'Кот',      shellClass:'shell-cat',    hasWalk:false, toiletIcon:'🚽', toiletLabel:'Лоток'    },
+  alien:  { name:'Пришелец', shellClass:'shell-alien',  hasWalk:false, toiletIcon:'🛸', toiletLabel:'Кабина'   },
+  dragon: { name:'Дракон',   shellClass:'shell-dragon', hasWalk:false, toiletIcon:'🔥', toiletLabel:'Нора'     },
+};
+
+// ============================================================
+//  STATE
+// ============================================================
+let selectedPet = null;
+let state = {};
+let gameMinute  = WAKE_HOUR * 60;  // текущая игровая минута (0-1439)
+let gameDay     = 1;
+let tickTimer   = null;
+let animTimer   = null;
+let isDead      = false;
+let isSleeping  = false;
+let lightsOut   = false;
+
+let poops       = [];
+let nextPoopAt  = 0;   // игровые минуты
+let poopRandom  = 0;
+
+let walkNeeded  = false;
+let nextWalkAt  = 0;
+
+let disciplineNeed  = false;
+let disciplineTimer = 0;    // тиков до следующего капризы
+let isSick      = false;
+
+let currentAnim = 'idle';
+let animFrame   = 0;
+let animTick    = 0;
+
+let canvas, ctx;
+let navIndex    = 0;
+
+// уведомления
+let lastWarnHunger = false, lastWarnHappy = false, lastWarnHealth = false, lastWarnClean = false;
+
+const ALL_ACTIONS = ['feed','snack','play','shower','toilet','medicine','walk','lights','discipline'];
+
+// ============================================================
+//  NAVIGATION
+// ============================================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goBackFromSupport() {
+  if (isDead) showScreen('gameover-screen');
+  else if (selectedPet && canvas) showScreen('game-screen');
+  else showScreen('sel-screen');
+}
+
+// ============================================================
+//  SELECTION
+// ============================================================
+function selectPet(type, el) {
+  selectedPet = type;
+  document.querySelectorAll('.model-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('start-btn').disabled = false;
+}
+
+function startGame() {
+  if (!selectedPet) return;
+  showScreen('game-screen');
+
+  // Shell
+  const shell = document.getElementById('tama-shell');
+  shell.className = 'tama-shell ' + PETS[selectedPet].shellClass;
+
+  // Кнопка прогулки
+  document.getElementById('btn-walk').style.display = PETS[selectedPet].hasWalk ? '' : 'none';
+  document.getElementById('toilet-icon').textContent  = PETS[selectedPet].toiletIcon;
+  document.getElementById('toilet-label').textContent = PETS[selectedPet].toiletLabel;
+
+  canvas = document.getElementById('pet-canvas');
+  ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+
+  initState();
+  scheduleNextPoop();
+  scheduleNextWalk();
+  scheduleDiscipline();
+
+  tickTimer = setInterval(gameTick, TICK_MS);
+  animTimer = setInterval(renderFrame, 120);
+}
+  saveGame();
+
+function initState() {
+  state = { hunger:100, happy:100, health:100, clean:100, ageDays:0, ageStage:'baby', weight:5, discipline:40 };
+  gameMinute = WAKE_HOUR * 60;
+  gameDay    = 1;
+  poops      = [];
+  isSick     = false;
+  isSleeping = false;
+  lightsOut  = false;
+  walkNeeded = false;
+  disciplineNeed = false;
+  disciplineTimer = 0;
+  isDead     = false;
+  currentAnim= 'idle';
+  lastWarnHunger = lastWarnHappy = lastWarnHealth = lastWarnClean = false;
+  updateUI();
+  updateClock();
+}
+
+// ============================================================
+//  SCHEDULING HELPERS
+// ============================================================
+function randRange(a, b) { return a + Math.random()*(b-a); }
+
+function scheduleNextPoop() {
+  const interval = POOP_INTERVAL_MIN + randRange(-200, 200);
+  nextPoopAt = gameMinute + interval;
+  if (nextPoopAt >= DAY_MINS) nextPoopAt -= DAY_MINS;
+}
+
+function scheduleNextWalk() {
+  if (!PETS[selectedPet].hasWalk) return;
+  const interval = WALK_INTERVAL_MIN + randRange(-150, 150);
+  nextWalkAt = gameMinute + interval;
+}
+
+function scheduleDiscipline() {
+  disciplineTimer = Math.round(randRange(1800, 3600)); // тиков
+}
+
+// ============================================================
+//  MAIN GAME TICK
+// ============================================================
+function gameTick() {
+  if (isDead) return;
+
+  // Advance game time
+  gameMinute += MINS_PER_TICK;
+  if (gameMinute >= DAY_MINS) {
+    gameMinute -= DAY_MINS;
+    gameDay++;
+    state.ageDays++;
+    updateAgeStage();
+    // random death from old age after day 25
+    if (state.ageDays > 25 && Math.random() < 0.015) { killPet('oldage'); return; }
+  }
+
+  // Sleep logic
+  const hour = Math.floor(gameMinute / 60);
+  if (!isSleeping && hour >= SLEEP_HOUR) {
+    startSleep();
+    return;
+  }
+  if (isSleeping && hour >= WAKE_HOUR && hour < SLEEP_HOUR) {
+    endSleep();
+  }
+  if (isSleeping) { updateClock(); return; }
+
+  // Stat decay — randomize per tick
+  const rnd = () => 0.7 + Math.random()*0.6;
+  state.hunger = Math.max(0, state.hunger - BASE_DECAY.hunger * rnd());
+  state.happy  = Math.max(0, state.happy  - BASE_DECAY.happy  * rnd());
+  state.clean  = Math.max(0, state.clean  - BASE_DECAY.clean  * rnd());
+
+  // Health damage
+  let hpDmg = 0;
+  if (state.hunger < WARN_THRESHOLD) hpDmg += HEALTH_DAMAGE_PER_TICK * (1 - state.hunger/WARN_THRESHOLD);
+  if (state.clean  < WARN_THRESHOLD) hpDmg += HEALTH_DAMAGE_PER_TICK * 0.5;
+  if (isSick) hpDmg += HEALTH_DAMAGE_PER_TICK;
+  if (hpDmg > 0) state.health = Math.max(0, state.health - hpDmg);
+
+  // Sickness from poop neglect
+  if (poops.length >= 2 && Math.random() < 0.06) isSick = true;
+
+  // Poop event
+  if (gameMinute >= nextPoopAt) {
+    if (PETS[selectedPet].hasWalk) {
+      // Dog: needs walk first; if not walked, poops inside
+      if (walkNeeded) {
+        addPoop();
+        notify('Пёс нагадил дома! 💩 Срочно на прогулку!', 'bad');
+      } else {
+        walkNeeded = true;
+        document.getElementById('btn-walk').classList.add('alert-btn');
+        notify('Пёс хочет на прогулку 🦮', 'warn');
+        scheduleNextWalk();
+      }
+    } else {
+      addPoop();
+    }
+    scheduleNextPoop();
+  }
+
+  // Discipline call
+  disciplineTimer--;
+  if (disciplineTimer <= 0 && !disciplineNeed) {
+    if (state.hunger > 50 && state.happy > 50 && Math.random() < DISCIPLINE_CHANCE * 4) {
+      disciplineNeed = true;
+      document.getElementById('btn-discipline').classList.add('alert-btn');
+      notify('Питомец капризничает! 😤', 'warn');
+    }
+    scheduleDiscipline();
+  }
+
+  // Sick become random
+  if (!isSick && state.health < 40 && Math.random() < 0.05) isSick = true;
+
+  // Warnings
+  checkWarnings();
+
+  // Death
+  if (state.health <= 0) { killPet('hunger'); return; }
+
+  updateUI();
+  updateClock();
+}
+
+function checkWarnings() {
+  if (state.hunger < WARN_THRESHOLD && !lastWarnHunger) {
+    notify(`${PETS[selectedPet].name} голоден! 🍖`, 'warn');
+    document.getElementById('btn-feed').classList.add('alert-btn');
+    lastWarnHunger = true;
+  } else if (state.hunger >= WARN_THRESHOLD) {
+    document.getElementById('btn-feed').classList.remove('alert-btn');
+    lastWarnHunger = false;
+  }
+  if (state.happy < WARN_THRESHOLD && !lastWarnHappy) {
+    notify(`${PETS[selectedPet].name} грустит! 😢`, 'warn');
+    lastWarnHappy = true;
+  } else if (state.happy >= WARN_THRESHOLD) lastWarnHappy = false;
+
+  if (state.health < WARN_THRESHOLD && !lastWarnHealth) {
+    notify('Питомцу плохо! ❤️ Срочно лечить!', 'bad');
+    document.getElementById('btn-medicine').classList.add('alert-btn');
+    lastWarnHealth = true;
+  } else if (state.health >= WARN_THRESHOLD) {
+    document.getElementById('btn-medicine').classList.remove('alert-btn');
+    lastWarnHealth = false;
+  }
+  if (poops.length > 0 && !lastWarnClean) {
+    notify('Нужно убраться! 🧹', 'warn');
+    document.getElementById('btn-toilet').classList.add('alert-btn');
+    lastWarnClean = true;
+  } else if (poops.length === 0) {
+    document.getElementById('btn-toilet').classList.remove('alert-btn');
+    lastWarnClean = false;
+  }
+  if (isSick && !document.getElementById('btn-medicine').classList.contains('alert-btn')) {
+    document.getElementById('btn-medicine').classList.add('alert-btn');
+    notify(`${PETS[selectedPet].name} заболел! 🤒`, 'bad');
+  }
+}
+
+function addPoop() {
+  if (poops.length >= 3) return;
+  poops.push({ x: 15 + Math.random()*50, y: 55 + Math.random()*18 });
+  state.clean = Math.max(0, state.clean - 18);
+}
+
+function updateAgeStage() {
+  const d = state.ageDays;
+  let stage = 'baby';
+  if (d >= 2)  stage = 'child';
+  if (d >= 5)  stage = 'teen';
+  if (d >= 12) stage = 'adult';
+  if (d >= 22) stage = 'old';
+  state.ageStage = stage;
+  const names = { baby:'Малыш', child:'Детёныш', teen:'Подросток', adult:'Взрослый', old:'Старик' };
+  document.getElementById('game-age').textContent = `День ${gameDay} · ${names[stage]}`;
+}
+
+function startSleep() {
+  isSleeping = true;
+  lightsOut = true;
+  currentAnim = 'sleep';
+  document.getElementById('lights-icon').textContent  = '🌙';
+  document.getElementById('lights-label').textContent = 'Разбудить';
+  notify('Питомец засыпает 💤 Выключи свет!', 'warn');
+  // Health regen during sleep
+  state.health = Math.min(100, state.health + 8);
+}
+
+function endSleep() {
+  isSleeping = false;
+  lightsOut = false;
+  currentAnim = 'idle';
+  document.getElementById('lights-icon').textContent  = '💡';
+  document.getElementById('lights-label').textContent = 'Свет выкл';
+  notify('Питомец проснулся! ☀️', 'good');
+  scheduleNextPoop();
+}
+
+// ============================================================
+//  ACTIONS
+// ============================================================
+function doAction(action) {
+  if (isDead) return;
+  if (action !== 'lights' && isSleeping) { notify('Питомец спит...', 'warn'); return; }
+
+  switch(action) {
+    case 'feed':
+      if (state.hunger >= 95) { notify('Питомец не голоден!', 'warn'); return; }
+      state.hunger = Math.min(100, state.hunger + 30);
+      state.weight++;
+      playAnim('eat');
+      notify(`${PETS[selectedPet].name} ест! Ням-ням 🍖`, 'good');
+      break;
+
+    case 'snack':
+      if (state.happy >= 95) { notify('Питомец уже счастлив!', 'warn'); return; }
+      state.happy  = Math.min(100, state.happy  + 20);
+      state.hunger = Math.min(100, state.hunger + 8);
+      state.weight++;
+      playAnim('eat');
+      notify('Вкусняшка! 🍬', 'good');
+      break;
+
+    case 'play':
+      openMiniGame();
+      return;
+
+    case 'shower':
+      state.clean = Math.min(100, state.clean + 45);
+      poops = [];
+      if (Math.random() > 0.3) isSick = false;
+      playAnim('shower');
+      notify('Чистюля! 🚿', 'good');
+      document.getElementById('btn-toilet').classList.remove('alert-btn');
+      lastWarnClean = false;
+      break;
+
+    case 'toilet':
+      if (poops.length === 0) { notify('Уже чисто! ✨', 'good'); return; }
+      poops = [];
+      state.clean = Math.min(100, state.clean + 15);
+      notify('Убрано! 🧹', 'good');
+      document.getElementById('btn-toilet').classList.remove('alert-btn');
+      lastWarnClean = false;
+      break;
+
+    case 'medicine':
+      if (!isSick) { notify('Питомец здоров!', 'good'); return; }
+      isSick = false;
+      state.health = Math.min(100, state.health + 35);
+      playAnim('medicine');
+      document.getElementById('btn-medicine').classList.remove('alert-btn');
+      lastWarnHealth = false;
+      notify('Питомец поправляется 💊', 'good');
+      break;
+
+    case 'walk':
+      if (!PETS[selectedPet].hasWalk) return;
+      walkNeeded = false;
+      state.happy  = Math.min(100, state.happy  + 25);
+      state.health = Math.min(100, state.health + 8);
+      poops = []; // гулял — сходил на улице
+      playAnim('walk');
+      document.getElementById('btn-walk').classList.remove('alert-btn');
+      document.getElementById('btn-toilet').classList.remove('alert-btn');
+      lastWarnClean = false;
+      scheduleNextWalk();
+      scheduleNextPoop();
+      notify('Отличная прогулка! 🌳', 'good');
+      break;
+
+    case 'lights':
+      if (isSleeping) {
+        endSleep();
+      } else {
+        lightsOut = !lightsOut;
+        document.getElementById('lights-icon').textContent  = lightsOut ? '🌙' : '💡';
+        document.getElementById('lights-label').textContent = lightsOut ? 'Включить' : 'Свет выкл';
+        notify(lightsOut ? 'Свет выключен 🌙' : 'Свет включён 💡', '');
+      }
+      return;
+
+    case 'discipline':
+      if (disciplineNeed) {
+        disciplineNeed = false;
+        state.discipline = Math.min(100, state.discipline + 12);
+        state.happy = Math.max(0, state.happy - 5);
+        playAnim('discipline');
+        document.getElementById('btn-discipline').classList.remove('alert-btn');
+        notify('Слушается! 😤', 'good');
+      } else {
+        state.happy = Math.max(0, state.happy - 12);
+        notify('Незаслуженно... питомец обиделся', 'warn');
+      }
+      break;
+  }
+  updateUI();
+}
+
+function playAnim(name) {
+  currentAnim = name;
+  animFrame = 0;
+  setTimeout(() => { if (!isSleeping && !isDead) currentAnim = 'idle'; }, 2200);
+}
+
+// ============================================================
+//  UI UPDATE
+// ============================================================
+function updateUI() {
+  const s = state;
+  const setBar = (id, vid, val, low) => {
+    document.getElementById(id).style.width = Math.round(val) + '%';
+    document.getElementById(id).style.background = val < low ? '#d82030' : '';
+    document.getElementById(vid).textContent = Math.round(val);
+  };
+  setBar('bar-hunger', 'val-hunger', s.hunger, 20);
+  setBar('bar-happy',  'val-happy',  s.happy,  20);
+  setBar('bar-health', 'val-health', s.health, 20);
+  setBar('bar-clean',  'val-clean',  s.clean,  15);
+}
+
+function updateClock() {
+  const h  = Math.floor(gameMinute / 60);
+  const m  = gameMinute % 60;
+  const hh = String(h).padStart(2,'0');
+  const mm = String(m).padStart(2,'0');
+  const icon = h >= 22 || h < 7 ? '🌙' : h < 12 ? '🌅' : h < 18 ? '☀️' : '🌆';
+  document.getElementById('game-clock').textContent = `${icon} ${hh}:${mm}`;
+}
+
+// ============================================================
+//  DEATH
+// ============================================================
+function killPet(cause) {
+  isDead = true;
+  clearInterval(tickTimer);
+  currentAnim = 'dead';
+  const msgs = {
+    hunger: 'Питомец умер от голода и болезни...',
+    oldage: `${PETS[selectedPet].name} прожил долгую счастливую жизнь и умер от старости`,
+  };
+  document.getElementById('go-emoji').textContent = cause === 'oldage' ? '👼' : '💀';
+  document.getElementById('go-title').textContent = cause === 'oldage' ? 'Питомец умер от старости' : 'Питомец умер';
+  document.getElementById('go-msg').textContent   = msgs[cause] || 'Питомец не выжил...';
+  document.getElementById('go-stats').textContent = `Прожил: ${gameDay} дней\nВес: ${state.weight} ед.\nДисциплина: ${Math.round(state.discipline)}`;
+  showScreen('gameover-screen');
+}
+
+function restartGame() {
+  clearInterval(tickTimer);
+  clearInterval(animTimer);
+  selectedPet = null;
+  document.querySelectorAll('.model-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('start-btn').disabled = true;
+  showScreen('sel-screen');
+}
+
+// ============================================================
+//  RENDER LOOP
+// ============================================================
+function renderFrame() {
+  animTick++;
+  if (animTick % 2 === 0) animFrame++;
+  if (!ctx) return;
+  ctx.clearRect(0, 0, 108, 84);
+
+  if (lightsOut) {
+    ctx.fillStyle = '#060a03';
+    ctx.fillRect(0, 0, 108, 84);
+    ctx.fillStyle = '#1a2e0a';
+    ctx.font = '9px monospace';
+    ctx.fillText('z z z', 40, 44);
+    return;
+  }
+
+  // BG
+  ctx.fillStyle = '#8bac0f';
+  ctx.fillRect(0, 0, 108, 84);
+
+  // Sky gradient simulation (pixel stripes)
+  const h = Math.floor(gameMinute / 60);
+  if (h >= 20 || h < 6) {
+    ctx.fillStyle = '#224010';
+    ctx.fillRect(0, 0, 108, 30);
+  } else if (h < 9 || h >= 18) {
+    ctx.fillStyle = '#508010';
+    ctx.fillRect(0, 0, 108, 20);
+  }
+
+  // Ground
+  ctx.fillStyle = '#306230';
+  ctx.fillRect(0, 68, 108, 3);
+
+  // Poops
+  poops.forEach(p => drawPoop(p.x, p.y));
+
+  // Sick aura
+  if (isSick) {
+    ctx.fillStyle = 'rgba(100,160,10,0.18)';
+    ctx.fillRect(20,20,70,50);
+    ctx.fillStyle = '#0f380f'; ctx.font = '8px monospace';
+    ctx.fillText('×_×', 80, 12);
+  }
+
+  // Pet
+  const bounce = Math.sin(animFrame * 0.7) * 1.5;
+  const cx = 54, cy = 46 + bounce;
+
+  if (isDead) { drawDead(cx, cy); }
+  else {
+    switch(selectedPet) {
+      case 'dog':    drawDog(cx, cy);    break;
+      case 'cat':    drawCat(cx, cy);    break;
+      case 'alien':  drawAlien(cx, cy);  break;
+      case 'dragon': drawDragon(cx, cy); break;
+    }
+  }
+
+  // Overlays
+  ctx.font = '8px monospace'; ctx.fillStyle = '#0f380f';
+  if (currentAnim === 'eat')       { ctx.fillText('nom!', 65, 30); }
+  if (currentAnim === 'shower')    { for(let i=0;i<4;i++) { ctx.fillStyle='#20a0d8'; ctx.fillRect(38+i*8, 22+(animFrame*3%10), 2, 5); } }
+  if (currentAnim === 'medicine')  { ctx.fillStyle='#e82030'; ctx.fillText('+HP', 64, 28); }
+  if (currentAnim === 'walk')      { ctx.fillStyle='#306230'; for(let i=0;i<3;i++) ctx.fillRect(8+i*18+(animFrame%6), 72, 5, 3); }
+  if (currentAnim === 'discipline'){ ctx.fillStyle='#e82030'; ctx.fillText('!', 72, 26); }
+
+  // Stats icons top
+  drawHearts(77, 4, Math.round(state.happy/25));
+  drawHungerDots(2, 4, Math.round(state.hunger/25));
+
+  // Walk alert
+  if (walkNeeded) { ctx.fillStyle='#e87010'; ctx.font='7px monospace'; ctx.fillText('🐾?', 2, 20); }
+  // Discipline alert
+  if (disciplineNeed) { ctx.fillStyle='#e82030'; ctx.font='9px monospace'; ctx.fillText('!', 100, 16); }
+}
+
+// ============================================================
+//  PIXEL ART HELPERS
+// ============================================================
+function drawPoop(x, y) {
+  ctx.fillStyle = '#5a3010';
+  ctx.fillRect(x, y, 9, 4);
+  ctx.fillRect(x+1, y-3, 7, 4);
+  ctx.fillRect(x+2, y-6, 5, 4);
+  ctx.fillRect(x+3, y-8, 3, 3);
+  ctx.fillStyle = '#8b5010';
+  ctx.fillRect(x+1, y, 3, 2);
+}
+
+function drawHearts(x, y, count) {
+  for (let i=0;i<4;i++) {
+    const hx = x+i*7;
+    ctx.fillStyle = i < count ? '#d82030' : '#306230';
+    ctx.fillRect(hx+1,y,1,1); ctx.fillRect(hx+3,y,1,1);
+    ctx.fillRect(hx,y+1,5,2);
+    ctx.fillRect(hx+1,y+3,3,1);
+    ctx.fillRect(hx+2,y+4,1,1);
+  }
+}
+
+function drawHungerDots(x, y, count) {
+  for(let i=0;i<4;i++){
+    ctx.fillStyle = i < count ? '#d87010' : '#306230';
+    ctx.fillRect(x+i*7, y, 5, 5);
+    ctx.clearRect(x+i*7, y, 1, 1);
+    ctx.clearRect(x+i*7+4, y, 1, 1);
+    ctx.clearRect(x+i*7, y+4, 1, 1);
+    ctx.clearRect(x+i*7+4, y+4, 1, 1);
+  }
+}
+
+// scale by age
+function getScale() {
+  const s = state.ageStage;
+  if (s==='baby') return 0.65;
+  if (s==='child') return 0.82;
+  return 1;
+}
+
+function withScale(cx, cy, fn) {
+  const sc = getScale();
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(sc, sc);
+  ctx.translate(-cx, -cy);
+  fn();
+  ctx.restore();
+}
+
+function drawDog(cx, cy) {
+  const b='#0f380f', m='#306230', s='#8bac0f';
+  withScale(cx, cy, () => {
+    ctx.fillStyle=b;
+    ctx.fillRect(cx-8,cy-2,16,12);    // body
+    ctx.fillRect(cx-7,cy-15,14,13);   // head
+    ctx.fillRect(cx-11,cy-18,5,9);    // ear L
+    ctx.fillRect(cx+6,cy-18,5,9);     // ear R
+    ctx.fillStyle=s;
+    ctx.fillRect(cx-5,cy-13,2,2);     // eye L
+    ctx.fillRect(cx+3,cy-13,2,2);     // eye R
+    ctx.fillStyle=b;
+    ctx.fillRect(cx-2,cy-10,4,2);     // nose
+    ctx.fillRect(cx-4,cy-7,3,2);      // mouth L
+    ctx.fillRect(cx+1,cy-7,3,2);      // mouth R
+    // tail wag
+    const tw = (currentAnim==='eat'||currentAnim==='walk') ? Math.sin(animFrame*1.2)*6 : 0;
+    ctx.fillRect(cx+8,cy-2+tw,2,9);
+    // legs
+    ctx.fillStyle=b;
+    ctx.fillRect(cx-8,cy+10,4,7);
+    ctx.fillRect(cx-1,cy+10,4,7);
+    ctx.fillRect(cx+4,cy+10,4,7);
+    // spots
+    ctx.fillStyle=m;
+    ctx.fillRect(cx-4,cy,5,5);
+    ctx.fillRect(cx+1,cy-1,4,4);
+    // collar
+    ctx.fillStyle='#d82030';
+    ctx.fillRect(cx-6,cy-2,12,2);
+  });
+}
+
+function drawCat(cx, cy) {
+  const b='#0f380f', m='#306230', s='#8bac0f';
+  withScale(cx, cy, () => {
+    ctx.fillStyle=b;
+    ctx.fillRect(cx-7,cy-2,14,11);      // body
+    ctx.fillRect(cx-7,cy-16,14,14);     // head
+    ctx.fillRect(cx-8,cy-20,5,6);       // ear L
+    ctx.fillRect(cx+3,cy-20,5,6);       // ear R
+    ctx.fillStyle=m;
+    ctx.fillRect(cx-7,cy-19,3,4);       // inner ear L
+    ctx.fillRect(cx+4,cy-19,3,4);       // inner ear R
+    ctx.fillStyle=b;
+    ctx.fillRect(cx-5,cy-13,4,4);       // eye L
+    ctx.fillRect(cx+1,cy-13,4,4);       // eye R
+    ctx.fillStyle=s;
+    ctx.fillRect(cx-4,cy-13,1,4);       // pupil L
+    ctx.fillRect(cx+3,cy-13,1,4);       // pupil R
+    ctx.fillStyle='#e87090';
+    ctx.fillRect(cx-1,cy-9,2,2);        // nose
+    ctx.fillStyle=b;
+    ctx.fillRect(cx-9,cy-9,6,1);        // whisker L
+    ctx.fillRect(cx+3,cy-9,6,1);        // whisker R
+    ctx.fillRect(cx-9,cy-7,5,1);        // whisker L2
+    ctx.fillRect(cx+4,cy-7,5,1);        // whisker R2
+    ctx.fillRect(cx-3,cy-6,2,1);        // mouth L
+    ctx.fillRect(cx+1,cy-6,2,1);        // mouth R
+    // tail curl
+    const tc = Math.sin(animFrame*0.5)*2;
+    ctx.fillRect(cx+7,cy,2,14+tc);
+    ctx.fillRect(cx+4,cy+12+tc,6,2);
+    // legs
+    ctx.fillRect(cx-7,cy+9,4,6);
+    ctx.fillRect(cx+3,cy+9,4,6);
+    // stripe
+    ctx.fillStyle=m;
+    ctx.fillRect(cx-2,cy-16,4,1);
+    ctx.fillRect(cx-3,cy-14,6,1);
+  });
+}
+
+function drawAlien(cx, cy) {
+  const b='#0f380f', s='#8bac0f';
+  withScale(cx, cy, () => {
+    ctx.fillStyle=b;
+    ctx.fillRect(cx-7,cy,14,11);        // body
+    ctx.fillRect(cx-9,cy-2,18,11);      // body wide
+    ctx.fillRect(cx-10,cy-18,20,18);    // head
+    // big eyes
+    ctx.fillStyle=s;
+    ctx.fillRect(cx-9,cy-15,7,9);
+    ctx.fillRect(cx+2,cy-15,7,9);
+    ctx.fillStyle=b;
+    ctx.fillRect(cx-8,cy-14,5,7);
+    ctx.fillRect(cx+3,cy-14,5,7);
+    ctx.fillStyle=s;
+    ctx.fillRect(cx-7,cy-13,2,5);       // highlight L
+    ctx.fillRect(cx+4,cy-13,2,5);       // highlight R
+    // antenna
+    ctx.fillStyle=b;
+    ctx.fillRect(cx-1,cy-20,2,4);
+    ctx.fillRect(cx-3,cy-22,6,3);
+    // mouth
+    const mo = currentAnim==='eat'?1:0;
+    ctx.fillRect(cx-5,cy-4+mo,10,2);
+    ctx.fillRect(cx-6,cy-5+mo,2,2);
+    ctx.fillRect(cx+4,cy-5+mo,2,2);
+    // legs
+    ctx.fillRect(cx-7,cy+11,4,6);
+    ctx.fillRect(cx+3,cy+11,4,6);
+    // arms wave
+    const aw = Math.sin(animFrame*0.8)*3;
+    ctx.fillRect(cx-14,cy-1+aw,5,3);
+    ctx.fillRect(cx+9,cy-1-aw,5,3);
+  });
+}
+
+function drawDragon(cx, cy) {
+  const b='#0f380f', m='#306230', s='#8bac0f';
+  withScale(cx, cy, () => {
+    ctx.fillStyle=b;
+    ctx.fillRect(cx-9,cy-4,18,15);      // body
+    ctx.fillRect(cx-9,cy-20,18,16);     // head
+    ctx.fillRect(cx-9,cy-27,4,8);       // horn L
+    ctx.fillRect(cx+5,cy-27,4,8);       // horn R
+    ctx.fillStyle='#e82030';
+    ctx.fillRect(cx-7,cy-17,4,4);       // eye L
+    ctx.fillRect(cx+3,cy-17,4,4);       // eye R
+    ctx.fillStyle=b;
+    ctx.fillRect(cx-6,cy-16,2,2);       // pupil L
+    ctx.fillRect(cx+4,cy-16,2,2);       // pupil R
+    ctx.fillStyle=b;
+    ctx.fillRect(cx-5,cy-11,10,6);      // snout
+    if (currentAnim==='eat'||currentAnim==='walk') {
+      ctx.fillStyle='#e85820';
+      ctx.fillRect(cx+5,cy-10,6+animFrame%5,3);
+      ctx.fillStyle='#e8c820';
+      ctx.fillRect(cx+5,cy-9,4+animFrame%4,1);
+    }
+    // wings
+    const wf = Math.sin(animFrame*0.9)*4;
+    ctx.fillStyle=b;
+    ctx.fillRect(cx-18,cy-4+wf,9,12);
+    ctx.fillRect(cx+9,cy-4-wf,9,12);
+    ctx.fillStyle=m;
+    ctx.fillRect(cx-17,cy-3+wf,7,9);
+    ctx.fillRect(cx+10,cy-3-wf,7,9);
+    ctx.fillStyle=b;
+    ctx.fillRect(cx+9,cy+5,3,12);       // tail
+    ctx.fillRect(cx+11,cy+15,5,3);
+    // legs
+    ctx.fillRect(cx-9,cy+11,6,6);
+    ctx.fillRect(cx+3,cy+11,6,6);
+    // belly
+    ctx.fillStyle=m;
+    ctx.fillRect(cx-4,cy-4,8,10);
+  });
+}
+
+function drawDead(cx, cy) {
+  switch(selectedPet) {
+    case 'dog': drawDog(cx, cy+4); break;
+    case 'cat': drawCat(cx, cy+4); break;
+    case 'alien': drawAlien(cx, cy+4); break;
+    case 'dragon': drawDragon(cx, cy+4); break;
+  }
+  // X eyes overlay
+  ctx.fillStyle='#0f380f';
+  const sc = getScale(), ey = cy - Math.round(13*sc);
+  ctx.fillRect(cx-6,ey,2,2); ctx.fillRect(cx-4,ey+2,2,2);
+  ctx.fillRect(cx-4,ey,2,2); ctx.fillRect(cx-6,ey+2,2,2);
+  ctx.fillRect(cx+2,ey,2,2); ctx.fillRect(cx+4,ey+2,2,2);
+  ctx.fillRect(cx+4,ey,2,2); ctx.fillRect(cx+2,ey+2,2,2);
+  // halo
+  ctx.strokeStyle='#e8c820'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.ellipse(cx, cy-Math.round(22*sc), 8, 3, 0, 0, Math.PI*2); ctx.stroke();
+}
+
+// ============================================================
+//  MINI GAME
+// ============================================================
+let mgAnswer = null;
+function openMiniGame() {
+  if (isSleeping) { notify('Питомец спит!','warn'); return; }
+  document.getElementById('minigame-overlay').style.display = 'flex';
+  document.getElementById('mg-result').textContent = '';
+  mgAnswer = Math.random() < 0.5 ? 'left' : 'right';
+  const mc = document.getElementById('mg-canvas');
+  const mctx = mc.getContext('2d');
+  mctx.imageSmoothingEnabled = false;
+  mctx.fillStyle = '#8bac0f';
+  mctx.fillRect(0,0,200,100);
+  mctx.fillStyle = '#0f380f';
+  mctx.fillRect(85,28,30,36);
+  mctx.fillRect(83,18,34,22);
+  mctx.font = '22px Courier New';
+  mctx.fillText('?', 91, 52);
+  mctx.font = '22px serif';
+  mctx.fillText('◀', 6, 60);
+  mctx.fillText('▶', 162, 60);
+  mctx.font = '9px Courier New';
+  mctx.fillText('Куда прыгнет питомец?', 28, 14);
+}
+
+function mgGuess(dir) {
+  const ok = dir === mgAnswer;
+  document.getElementById('mg-result').textContent = ok ? '✅ Верно! +25 счастья' : '❌ Промахнулся!';
+  if (ok) {
+    state.happy = Math.min(100, state.happy + 25);
+    state.discipline = Math.min(100, state.discipline + 5);
+    notify('Ура! Питомцу весело! 🎮', 'good');
+  } else {
+    state.happy = Math.min(100, state.happy + 8);
+    notify('Почти! Питомец всё равно рад 🙂', '');
+  }
+  updateUI();
+  setTimeout(() => { document.getElementById('minigame-overlay').style.display = 'none'; }, 1400);
+}
+
+// ============================================================
+//  HARDWARE BUTTON NAVIGATION
+// ============================================================
+const VISIBLE_ACTIONS = () => ALL_ACTIONS.filter(a => {
+  if (a === 'walk') return PETS[selectedPet] && PETS[selectedPet].hasWalk;
+  return true;
+});
+
+function navLeft()   { const va=VISIBLE_ACTIONS(); navIndex=(navIndex-1+va.length)%va.length; highlightNav(); }
+function navRight()  { const va=VISIBLE_ACTIONS(); navIndex=(navIndex+1)%va.length; highlightNav(); }
+function navSelect() { doAction(VISIBLE_ACTIONS()[navIndex]); }
+function highlightNav() {
+  document.querySelectorAll('.action-btn').forEach(b => b.classList.remove('highlight'));
+  const id = 'btn-' + VISIBLE_ACTIONS()[navIndex];
+  const el = document.getElementById(id);
+  if (el) el.classList.add('highlight');
+}
+
+// ============================================================
+//  NOTIFY
+// ============================================================
+let notifyTO = null;
+function notify(msg, type) {
+  const b = document.getElementById('notify-banner');
+  b.textContent = msg;
+  b.className = 'show ' + (type || '');
+  if (notifyTO) clearTimeout(notifyTO);
+  notifyTO = setTimeout(() => { b.className = ''; }, 3000);
+}
+
+// ============================================================
+//  SUPPORT / COPY
+// ============================================================
+function copyText(text, el) {
+  navigator.clipboard.writeText(text).then(() => {
+    const btns = el.querySelectorAll('.donate-arrow');
+    const orig = el.querySelector('.donate-arrow').textContent;
+    el.querySelector('.donate-arrow').textContent = '✓';
+    notify('Скопировано! ' + text.slice(0,16)+'...', 'good');
+    setTimeout(() => { el.querySelector('.donate-arrow').textContent = orig; }, 1800);
+  }).catch(() => {
+    notify('Скопируй вручную: ' + text.slice(0,20), 'warn');
+  });
+}
+
+// ============================================================
+//  SAVE / LOAD  (localStorage)
+// ============================================================
+const SAVE_KEY = 'tama_save_v2';
+
+function saveGame() {
+  if (!selectedPet || isDead) return;
+  const save = {
+    selectedPet,
+    state,
+    gameMinute, gameDay,
+    poops, isSick, isSleeping, lightsOut,
+    walkNeeded, nextPoopAt, nextWalkAt,
+    disciplineNeed, disciplineTimer,
+    savedAt: Date.now()          // <-- метка реального времени
+  };
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch(e) {}
+}
+
+function hasSave() {
+  try { return !!localStorage.getItem(SAVE_KEY); } catch(e) { return false; }
+}
+
+function deleteSave() {
+  try { localStorage.removeItem(SAVE_KEY); } catch(e) {}
+}
+
+// Применяем деградацию за N реальных миллисекунд пока приложение было закрыто
+function applyOfflineTime(msOffline) {
+  // Переводим в тики
+  const ticksOffline = Math.floor(msOffline / TICK_MS);
+  if (ticksOffline <= 0) return;
+
+  // Максимум — 24 реальных часа (не даём питомцу умереть за недельный перерыв мгновенно)
+  const maxTicks = Math.floor((24 * 60 * 60 * 1000) / TICK_MS);
+  const ticks = Math.min(ticksOffline, maxTicks);
+
+  const rnd = () => 0.7 + Math.random() * 0.6;
+
+  // Применяем деградацию за каждый тик (упрощённо — без случайных событий каждый тик,
+  // только итоговое накопленное значение с небольшой рандомизацией)
+  const hungerLoss = BASE_DECAY.hunger * ticks * rnd();
+  const happyLoss  = BASE_DECAY.happy  * ticks * rnd();
+  const cleanLoss  = BASE_DECAY.clean  * ticks * rnd();
+
+  state.hunger = Math.max(0, state.hunger - hungerLoss);
+  state.happy  = Math.max(0, state.happy  - happyLoss);
+  state.clean  = Math.max(0, state.clean  - cleanLoss);
+
+  // Здоровье — только если статы были критически низкими
+  let hpDmg = 0;
+  if (state.hunger < WARN_THRESHOLD) hpDmg += HEALTH_DAMAGE_PER_TICK * ticks * 0.4;
+  if (state.clean  < WARN_THRESHOLD) hpDmg += HEALTH_DAMAGE_PER_TICK * ticks * 0.2;
+  if (isSick)                        hpDmg += HEALTH_DAMAGE_PER_TICK * ticks * 0.5;
+  if (hpDmg > 0) state.health = Math.max(0, state.health - hpDmg);
+
+  // Продвигаем игровое время
+  const gameMinsOffline = ticks * MINS_PER_TICK;
+  gameMinute += gameMinsOffline;
+  const extraDays = Math.floor(gameMinute / DAY_MINS);
+  gameMinute = gameMinute % DAY_MINS;
+  if (extraDays > 0) {
+    gameDay    += extraDays;
+    state.ageDays += extraDays;
+    updateAgeStage();
+  }
+
+  // Какашки накопились
+  const poopTicks = POOP_INTERVAL_MIN / MINS_PER_TICK;
+  const newPoops = Math.floor(ticks / poopTicks);
+  for (let i = 0; i < Math.min(newPoops, 3 - poops.length); i++) {
+    poops.push({ x: 15 + Math.random()*50, y: 55 + Math.random()*18 });
+    state.clean = Math.max(0, state.clean - 15);
+  }
+
+  // Прогулка — собака, если долго не гулял
+  if (PETS[selectedPet].hasWalk) {
+    const walkTicks = WALK_INTERVAL_MIN / MINS_PER_TICK;
+    if (ticks > walkTicks && !walkNeeded) {
+      walkNeeded = true;
+      if (ticks > walkTicks * 2) {
+        // Очень давно не гулял — нагадил
+        poops.push({ x: 15 + Math.random()*50, y: 55 + Math.random()*18 });
+      }
+    }
+  }
+
+  // Болезнь от грязи
+  if (poops.length >= 2 && Math.random() < 0.3) isSick = true;
+}
+
+function loadAndResume() {
+  let raw;
+  try { raw = localStorage.getItem(SAVE_KEY); } catch(e) { return false; }
+  if (!raw) return false;
+
+  let save;
+  try { save = JSON.parse(raw); } catch(e) { deleteSave(); return false; }
+  if (!save || !save.selectedPet || !save.state) { deleteSave(); return false; }
+
+  // Восстанавливаем
+  selectedPet      = save.selectedPet;
+  state            = save.state;
+  gameMinute       = save.gameMinute   ?? WAKE_HOUR * 60;
+  gameDay          = save.gameDay      ?? 1;
+  poops            = save.poops        ?? [];
+  isSick           = save.isSick       ?? false;
+  isSleeping       = save.isSleeping   ?? false;
+  lightsOut        = save.lightsOut    ?? false;
+  walkNeeded       = save.walkNeeded   ?? false;
+  nextPoopAt       = save.nextPoopAt   ?? 0;
+  nextWalkAt       = save.nextWalkAt   ?? 0;
+  disciplineNeed   = save.disciplineNeed  ?? false;
+  disciplineTimer  = save.disciplineTimer ?? 1800;
+
+  // Сколько прошло реального времени?
+  const msOffline = Date.now() - (save.savedAt ?? Date.now());
+
+  // Применяем офлайн-деградацию
+  if (msOffline > 10000) applyOfflineTime(msOffline);  // больше 10 сек — считаем
+
+  return true;
+}
+
+// Автосохранение каждые 10 секунд и при уходе со страницы
+setInterval(saveGame, 10000);
+window.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveGame();
+});
+window.addEventListener('pagehide', saveGame);
+window.addEventListener('beforeunload', saveGame);
+
+// ============================================================
+//  STARTUP — проверяем сохранение при загрузке страницы
+// ============================================================
+(function onStartup() {
+  if (!hasSave()) return;
+
+  // Показываем баннер "продолжить"
+  showResumeDialog();
+})();
+
+function showResumeDialog() {
+  // Читаем сохранение чтобы показать имя питомца
+  let petName = 'питомец';
+  let daysLived = 1;
+  let msAgo = 0;
+  try {
+    const s = JSON.parse(localStorage.getItem(SAVE_KEY));
+    petName  = PETS[s.selectedPet]?.name ?? 'питомец';
+    daysLived = s.gameDay ?? 1;
+    msAgo = Date.now() - (s.savedAt ?? Date.now());
+  } catch(e) {}
+
+  const agoText = msAgo < 60000 ? 'только что'
+    : msAgo < 3600000 ? `${Math.round(msAgo/60000)} мин назад`
+    : msAgo < 86400000 ? `${Math.round(msAgo/3600000)} ч назад`
+    : `${Math.round(msAgo/86400000)} дн назад`;
+
+  // Создаём оверлей поверх экрана выбора
+  const overlay = document.createElement('div');
+  overlay.id = 'resume-overlay';
+  overlay.style.cssText = `
+    position:fixed;inset:0;background:#000000cc;z-index:300;
+    display:flex;align-items:center;justify-content:center;
+  `;
+  overlay.innerHTML = `
+    <div style="background:#16213e;border:2px solid #f0c040;border-radius:18px;
+                padding:28px 22px;text-align:center;max-width:290px;width:90%;">
+      <div style="font-size:36px;margin-bottom:12px">🐣</div>
+      <div style="font-size:14px;color:#f0c040;font-weight:bold;letter-spacing:2px;
+                  margin-bottom:6px;text-transform:uppercase;font-family:'Courier New',monospace;">
+        Найдено сохранение
+      </div>
+      <div style="font-size:11px;color:#aaa;margin-bottom:4px;font-family:'Courier New',monospace;">
+        ${petName} • День ${daysLived}
+      </div>
+      <div style="font-size:9px;color:#555;margin-bottom:22px;font-family:'Courier New',monospace;
+                  letter-spacing:1px;text-transform:uppercase;">
+        Последний раз: ${agoText}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button onclick="resumeGame()" style="
+          background:#f0c040;color:#1a1a2e;border:none;padding:13px;
+          font-size:13px;font-family:'Courier New',monospace;font-weight:bold;
+          letter-spacing:2px;border-radius:20px;cursor:pointer;text-transform:uppercase;">
+          ▶ Продолжить
+        </button>
+        <button onclick="confirmNewGame()" style="
+          background:transparent;color:#555;border:1px solid #2a2d5a;padding:11px;
+          font-size:10px;font-family:'Courier New',monospace;letter-spacing:1px;
+          border-radius:20px;cursor:pointer;text-transform:uppercase;">
+          Начать заново
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function resumeGame() {
+  const overlay = document.getElementById('resume-overlay');
+  if (overlay) overlay.remove();
+
+  if (!loadAndResume()) {
+    notify('Ошибка загрузки сохранения', 'bad');
+    return;
+  }
+
+  // Инициализируем канвас и UI
+  canvas = document.getElementById('pet-canvas');
+  ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+
+  // Применяем настройки питомца
+  const shell = document.getElementById('tama-shell');
+  shell.className = 'tama-shell ' + PETS[selectedPet].shellClass;
+  document.getElementById('btn-walk').style.display = PETS[selectedPet].hasWalk ? '' : 'none';
+  document.getElementById('toilet-icon').textContent  = PETS[selectedPet].toiletIcon;
+  document.getElementById('toilet-label').textContent = PETS[selectedPet].toiletLabel;
+
+  showScreen('game-screen');
+
+  lastWarnHunger = lastWarnHappy = lastWarnHealth = lastWarnClean = false;
+  isSleeping = false; lightsOut = false;
+  currentAnim = 'idle';
+
+  updateUI();
+  updateClock();
+  checkWarnings();
+  updateAgeStage();
+
+  // Показываем что произошло пока игра была закрыта
+  const msgs = [];
+  if (state.hunger < 30) msgs.push('проголодался 🍖');
+  if (state.happy  < 30) msgs.push('заскучал 😢');
+  if (state.health < 50) msgs.push('заболел 🤒');
+  if (poops.length > 0)  msgs.push('нагадил 💩');
+  if (msgs.length > 0) {
+    setTimeout(() => notify(`Пока тебя не было: ${msgs.join(', ')}`, 'warn'), 500);
+  } else {
+    setTimeout(() => notify('С возвращением! Питомец в порядке ✅', 'good'), 500);
+  }
+
+  if (state.health <= 0) { killPet('hunger'); return; }
+
+  tickTimer = setInterval(gameTick, TICK_MS);
+  animTimer = setInterval(renderFrame, 120);
+  if (!isDead) setInterval(saveGame, 10000);
+}
+
+function confirmNewGame() {
+  if (confirm('Начать новую игру? Текущий прогресс будет удалён.')) {
+    deleteSave();
+    const overlay = document.getElementById('resume-overlay');
+    if (overlay) overlay.remove();
+  }
+}
+
+// Патчим restartGame чтобы удалял сохранение
+const _origRestart = restartGame;
+window.restartGame = function() {
+  deleteSave();
+  _origRestart();
+};
+
+// Патчим gameTick чтобы сохранял каждые N тиков
+let _saveCounter = 0;
+const _origGameTick = gameTick;
+window.gameTick = function() {
+  _origGameTick();
+  if (++_saveCounter % 2 === 0) saveGame(); // каждые 10 сек
+};
+
+// ============================================================
+//  TELEGRAM INIT
+// ============================================================
+try {
+  if (window.Telegram && window.Telegram.WebApp) {
+    Telegram.WebApp.ready();
+    Telegram.WebApp.expand();
+  }
+} catch(e) {}
+</script>
+</body>
+</html>
